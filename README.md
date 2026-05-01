@@ -1,63 +1,65 @@
 # Review Bridge
 
-Review Bridge is an MCP server that collects Git change context and asks a configured LLM to review the current code changes.
+[English](./README.en.md) | 中文
 
-It is intended for AI coding clients that support MCP, such as Codex, Claude Code, Cline, or editor integrations.
+Review Bridge 是一个 MCP 服务器，用于收集 Git 变更上下文并请求配置的 LLM 审查当前代码变更。
 
-## Requirements
+它适用于支持 MCP 的 AI 编码客户端，如 Codex、Claude Code、Cline 或编辑器集成。
 
-- Node.js 20 or newer
+## 要求
+
+- Node.js 20 或更高版本
 - Git
-- An API key for at least one supported LLM provider
+- 至少一个支持的 LLM 提供商的 API 密钥
 
-## Install
+## 安装
 
 ```powershell
 npm install
 npm run build
 ```
 
-The MCP server entrypoint is generated at:
+MCP 服务器入口点生成在：
 
 ```text
 dist/index.cjs
 ```
 
-The optional CLI entrypoint is generated at:
+可选的 CLI 入口点生成在：
 
 ```text
 dist/cli.cjs
 ```
 
-### Optional: Install Skill Document
+### 可选：安装技能文档
 
-For enhanced integration with Codex, it is recommended to also install the skill document:
+为了增强与 Codex 的集成，建议同时安装技能文档：
 
 ```powershell
-# Copy SKILL.md to your Codex skills directory
+# 将 SKILL.md 复制到 Codex 技能目录
 $skillDir = "$env:USERPROFILE\.codex\skills\review-bridge-auto-review"
 New-Item -ItemType Directory -Path $skillDir -Force
 Copy-Item .\SKILL.md "$skillDir\SKILL.md"
 ```
 
-This enables automatic code review after code changes. See the [Optional Codex Skill](#optional-codex-skill) section for details.
+这将启用代码变更后的自动代码审查。详情请参阅 [可选 Codex 技能](#可选-codex-技能) 部分。
 
-## Configure Models
+## 配置模型
 
-Review Bridge reads its runtime configuration from:
+Review Bridge 从以下位置读取运行时配置：
 
 ```text
 ~/.review-bridge/config.json
 ```
 
-You can copy and edit the example config:
+您可以复制并编辑示例配置：
 
 ```powershell
 mkdir $env:USERPROFILE\.review-bridge
 Copy-Item examples\config.json $env:USERPROFILE\.review-bridge\config.json
 ```
 
-The config should reference environment variable names, not raw API keys:
+配置应引用环境变量名称，而不是原始 API 密钥：
 
 ```json
 {
@@ -83,21 +85,21 @@ The config should reference environment variable names, not raw API keys:
 }
 ```
 
-Set API keys through your shell or operating-system environment settings:
+通过 shell 或操作系统环境设置 API 密钥：
 
 ```powershell
 [System.Environment]::SetEnvironmentVariable('OPENAI_API_KEY', 'your-api-key', 'User')
 ```
 
-Restart your MCP client after changing user-level environment variables.
+更改用户级环境变量后，重启 MCP 客户端。
 
-## MCP Client Examples
+## MCP 客户端示例
 
-Use the absolute path to `dist/index.cjs` in your local checkout.
+在本地检出中使用 `dist/index.cjs` 的绝对路径。
 
 ### Codex
 
-Add a server entry to your Codex MCP configuration:
+在 Codex MCP 配置中添加服务器条目：
 
 ```toml
 [mcp_servers.review-bridge]
@@ -136,11 +138,11 @@ args = ["C:\\path\\to\\review-bridge\\dist\\index.cjs"]
 }
 ```
 
-## Optional Codex Skill
+## 可选 Codex 技能
 
-This repository includes [SKILL.md](./SKILL.md), an optional Codex skill that tells Codex when and how to call Review Bridge after code changes.
+此仓库包含 [SKILL.md](./SKILL.md)，这是一个可选的 Codex 技能，告诉 Codex 在代码变更后何时以及如何调用 Review Bridge。
 
-To install it globally for Codex, copy it into your Codex skills directory:
+要为 Codex 全局安装，将其复制到 Codex 技能目录：
 
 ```powershell
 $skillDir = "$env:USERPROFILE\.codex\skills\review-bridge-auto-review"
@@ -148,21 +150,21 @@ New-Item -ItemType Directory -Path $skillDir -Force
 Copy-Item .\SKILL.md "$skillDir\SKILL.md"
 ```
 
-Then add a short trigger rule to your global or project `AGENTS.md`, for example:
+然后在全局或项目 `AGENTS.md` 中添加简短的触发规则，例如：
 
 ```markdown
-When a task modifies code, use the `review-bridge-auto-review` skill to call the configured `review-bridge` MCP server and review the current diff before finalizing.
+当任务修改代码时，使用 `review-bridge-auto-review` 技能调用配置的 `review-bridge` MCP 服务器，并在最终确定前审查当前 diff。
 ```
 
-Only enable automatic review when you are comfortable sending repository diff context to your configured model provider.
+仅在您愿意将仓库 diff 上下文发送到配置的模型提供商时才启用自动审查。
 
-## Tools
+## 工具
 
 ### `review_changes`
 
-Reviews a repository diff and returns an LLM-generated code review.
+审查仓库 diff 并返回 LLM 生成的代码审查。
 
-Common arguments:
+常用参数：
 
 ```json
 {
@@ -176,7 +178,7 @@ Common arguments:
 
 ### `review_last_change`
 
-Convenience tool that reviews recent changes for the current or provided working directory.
+便捷工具，审查当前或指定工作目录的最近变更。
 
 ```json
 {
@@ -186,38 +188,38 @@ Convenience tool that reviews recent changes for the current or provided working
 
 ### `list_review_models`
 
-Lists configured review models without exposing API key values.
+列出配置的审查模型，不暴露 API 密钥值。
 
-## Security Notes
+## 安全说明
 
-- Do not commit real API keys.
-- Keep API keys in environment variables.
-- Review Bridge sends selected Git diff and repository context to the configured model provider.
-- For private repositories, use only providers and endpoints you trust.
-- Add local outputs, logs, and `.env` files to `.gitignore`.
+- 不要提交真实的 API 密钥。
+- 将 API 密钥保存在环境变量中。
+- Review Bridge 会将选定的 Git diff 和仓库上下文发送到配置的模型提供商。
+- 对于私有仓库，仅使用您信任的提供商和端点。
+- 将本地输出、日志和 `.env` 文件添加到 `.gitignore`。
 
-## Development
+## 开发
 
-Build:
+构建：
 
 ```powershell
 npm run build
 ```
 
-Run the MCP inspector:
+运行 MCP 检查器：
 
 ```powershell
 npm run inspect
 ```
 
-Run tests:
+运行测试：
 
 ```powershell
 npm test
 ```
 
-At the moment, this project may not include test files; in that case Vitest exits with a "No test files found" message.
+目前，此项目可能不包含测试文件；在这种情况下，Vitest 会显示 "No test files found" 消息。
 
-## Note
+## 备注
 
 纯 vibe coding 产物 from Codex.
