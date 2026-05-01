@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "review-bridge": {
+      "command": "node",
+      "args": ["path/to/review-bridge/dist/index.cjs"]
+    }
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "mcp_tool",
+            "server": "review-bridge",
+            "tool": "review_last_change",
+            "input": {
+              "cwd": "${cwd}",
+              "source_tool": "claude-code"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "review-bridge": {
+      "command": "node",
+      "args": ["path/to/review-bridge/dist/index.cjs"]
+    }
+  }
+}

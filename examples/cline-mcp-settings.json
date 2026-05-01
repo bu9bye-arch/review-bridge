@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "review-bridge": {
+      "command": "node",
+      "args": ["path/to/review-bridge/dist/index.cjs"],
+      "autoApprove": ["review_changes", "review_last_change", "list_review_models"]
+    }
+  }
+}

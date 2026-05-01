@@ -1,0 +1,39 @@
+{
+  "default_model": "claude-sonnet",
+  "models": {
+    "claude-sonnet": {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "max_tokens": 64000
+    },
+    "claude-haiku": {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "max_tokens": 64000
+    },
+    "gpt-4o": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "api_key_env": "OPENAI_API_KEY",
+      "max_tokens": 64000
+    },
+    "gemini-pro": {
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "api_key_env": "GOOGLE_API_KEY",
+      "max_tokens": 64000
+    },
+    "deepseek": {
+      "provider": "openai-compatible",
+      "model": "deepseek-chat",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "base_url": "https://api.deepseek.com/v1",
+      "max_tokens": 64000
+    }
+  },
+  "review_prompt_template": "default",
+  "auto_review_on_stop": false,
+  "diff_default_range": "HEAD~1..HEAD"
+}
