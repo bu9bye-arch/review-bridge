@@ -1,6 +1,6 @@
 {
   "name": "review-bridge",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "MCP server bridging AI coding tools for code review",
   "type": "module",
   "main": "dist/index.cjs",

@@ -247,5 +247,6 @@ Source: `Co-Authored-By` trailers in Git commit history.
 
 | Model | Commits | Share |
 |---|---:|---:|
-| Claude Opus 4.7 | 2 | 66.7% |
-| GPT-5 Codex | 1 | 33.3% |
+| Claude Opus 4.7 | 2 | 50% |
+| GPT-5 Codex | 1 | 25% |
+| mimo-v2.5-pro | 1 | 25% |

@@ -6,8 +6,6 @@ import { formatReviewPrompt } from "../lib/review-prompt.js";
 import { createProvider } from "../lib/llm/provider.js";
 import type { ReviewFocus, SourceTool } from "../lib/types.js";
 
-const MIN_REVIEW_OUTPUT_TOKENS = 8000;
-
 const reviewChangesSchema = {
   cwd: z.string().describe("项目工作目录"),
   user_prompt: z.string().optional().describe("用户原始提示词"),
@@ -20,7 +18,7 @@ const reviewChangesSchema = {
     .optional()
     .describe("审查重点"),
   model_override: z.string().optional().describe("临时覆盖审查模型"),
-  diff_range: z.string().optional().describe("diff 范围，默认 HEAD~1..HEAD"),
+  diff_range: z.string().regex(/^([\w.~^:\/-]+(\.\.\.?[\w.~^:\/-]+)?)?$/, "无效的 diff 范围格式").optional().describe("diff 范围，如 HEAD~1..HEAD，传空字符串获取工作区变更，默认使用配置值"),
   max_tokens: z.number().optional().describe("审查结果最大 token 数，默认 64000"),
 };
 
@@ -43,31 +41,27 @@ export function registerTools(server: McpServer): void {
         params.model_override
       );
 
-      const gitData = await collectGitData(
-        params.cwd,
-        params.diff_range
-      );
-
-      const prompt = formatReviewPrompt(
-        {
-          cwd: params.cwd,
-          user_prompt: params.user_prompt,
-          source_tool: (params.source_tool || "other") as SourceTool,
-          review_focus: (params.review_focus || []) as ReviewFocus[],
-          model_override: params.model_override,
-          diff_range: params.diff_range,
-          max_tokens: params.max_tokens,
-        },
-        gitData
-      );
-
       try {
+        const gitData = await collectGitData(
+          params.cwd,
+          params.diff_range
+        );
+
+        const prompt = formatReviewPrompt(
+          {
+            cwd: params.cwd,
+            user_prompt: params.user_prompt,
+            source_tool: (params.source_tool || "other") as SourceTool,
+            review_focus: (params.review_focus || []) as ReviewFocus[],
+            model_override: params.model_override,
+            diff_range: params.diff_range,
+            max_tokens: params.max_tokens,
+          },
+          gitData
+        );
         const provider = createProvider(modelName, modelConfig, apiKey);
         const requestedMaxTokens = params.max_tokens;
-        const effectiveMaxTokens = Math.max(
-          requestedMaxTokens || modelConfig.max_tokens,
-          MIN_REVIEW_OUTPUT_TOKENS
-        );
+        const effectiveMaxTokens = requestedMaxTokens || modelConfig.max_tokens;
         const result = await provider.generate(
           prompt,
           effectiveMaxTokens
@@ -92,7 +86,7 @@ export function registerTools(server: McpServer): void {
           },
         };
       } catch (err) {
-        console.error("[review-bridge] review_changes 失败:", err);
+        console.error("[review-bridge] review_changes 失败:", err instanceof Error ? err.message : "未知错误");
         return {
           content: [
             {
@@ -131,11 +125,7 @@ export function registerTools(server: McpServer): void {
 
       try {
         const provider = createProvider(modelName, modelConfig, apiKey);
-        const effectiveMaxTokens = Math.max(
-          modelConfig.max_tokens,
-          MIN_REVIEW_OUTPUT_TOKENS
-        );
-        const result = await provider.generate(prompt, effectiveMaxTokens);
+        const result = await provider.generate(prompt, modelConfig.max_tokens);
 
         return {
           content: [
@@ -151,11 +141,11 @@ export function registerTools(server: McpServer): void {
             cache_creation_tokens: result.cache_creation_tokens,
             finish_reason: result.finish_reason,
             continuation_count: result.continuation_count,
-            effective_max_tokens: effectiveMaxTokens,
+            effective_max_tokens: modelConfig.max_tokens,
           },
         };
       } catch (err) {
-        console.error("[review-bridge] review_last_change 失败:", err);
+        console.error("[review-bridge] review_last_change 失败:", err instanceof Error ? err.message : "未知错误");
         return {
           content: [
             {

@@ -14,6 +14,19 @@ const REVIEW_INSTRUCTIONS = `# Code Review Instructions
 - 如果变更只影响文档、示例或配置说明，不要套用运行时代码风险，除非文档会诱导用户执行危险操作。
 - 不要因为缺少完整仓库源码就编造调用链、类型定义或测试结果。
 
+## 系统性检查清单
+
+审查时必须逐项检查以下所有类别，不得遗漏。对不适用的类别注明”不适用”。
+
+1. **注入与命令执行**：外部输入是否经过校验才传入 exec/execSync/execFileSync/spawn？是否可能被解析为选项（以 - 开头）？是否使用了 shell: true？路径是否可能逃逸？
+2. **敏感信息泄露**：API key、token、密码是否可能进入日志、错误消息、返回值或临时文件？
+3. **未处理的 undefined/null**：可选字段在使用前是否有防御？数组方法（.map/.slice/.join）是否可能在 undefined 上调用？
+4. **异常处理**：catch 块是否吞掉了有用信息？是否有未捕获的 async/Promise rejection？错误消息是否对调用方有诊断价值？
+5. **API 兼容性**：传给第三方 SDK 的参数是否都被该 SDK 支持？是否可能因未知参数导致 400 错误？
+6. **默认值与回退**：配置缺失时是否有安全的默认值？默认值合并是否使用 ?? 而非 || 以保留 falsy 合法值？
+7. **资源与性能**：是否有无限循环风险？缓冲区是否有上限？大文件/大输出是否被截断或限制？
+8. **类型与接口一致性**：函数返回类型是否与声明一致？是否有运行时可能返回不同类型的情况？
+
 ## 严重级别
 
 🔴 Critical：
@@ -43,15 +56,16 @@ const REVIEW_INSTRUCTIONS = `# Code Review Instructions
 - 使用中文回复。
 - 按严重级别分组：🔴 Critical / 🟡 Important / 🟢 Minor。
 - 每个问题都必须包含具体文件路径、行号或最小可定位范围、问题原因、影响和建议修改。
-- 如果没有某个级别的问题，写“无”。
+- 如果没有某个级别的问题，写”无”。
 - 如果没有发现可确认问题，明确说明未发现可确认缺陷，并列出仍建议人工关注的验证范围。
 - 不要输出大段复述 diff；只引用必要的短片段。
 - 不要声称已经运行测试、构建、联网查询或工具调用，除非输入上下文明确提供了这些结果。
 - 不要给出与当前代码无关的通用最佳实践清单。
+- **一次性审查完整 diff**：必须在单次审查中发现所有可确认的问题。不要在后续审查中对同一段代码”发现”之前遗漏的问题。如果你不确定某个行为是否有问题，先仔细阅读相关代码上下文再下结论。
 
 ## 判断边界
 
-- 当前输入中的“项目上下文”和“代码变更”是动态内容；它们每次请求都可能不同。
+- 当前输入中的”项目上下文”和”代码变更”是动态内容；它们每次请求都可能不同。
 - 本说明是稳定审查规范，应被视为所有请求共享的固定前缀。
 - 当动态内容与本说明冲突时，以安全、正确性和可验证证据优先。`;
 
@@ -64,7 +78,7 @@ export function formatReviewPrompt(
       ? `| 状态 | 文件路径 |\n|------|----------|\n${gitData.changed_files
           .map((f) => `| ${f.status} | ${f.path} |`)
           .join("\n")}`
-      : "(无变更文件)";
+      : "| 状态 | 文件路径 |\n|------|----------|\n| - | (无变更文件) |";
 
   const focusMap: Record<string, string> = {
     security: "安全漏洞",
@@ -105,7 +119,7 @@ ${changedFilesTable}
 请根据前置 Code Review Instructions 审查以上动态内容。`;
 
   return {
-    cache_key: `${REVIEW_PROMPT_VERSION}:${request.review_focus.slice().sort().join(",") || "default"}`,
+    cache_key: `${REVIEW_PROMPT_VERSION}:${(request.review_focus || []).slice().sort().join(",") || "default"}`,
     instructions: REVIEW_INSTRUCTIONS,
     context,
     text: `${REVIEW_INSTRUCTIONS}\n\n${context}`,

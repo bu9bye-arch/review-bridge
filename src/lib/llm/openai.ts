@@ -14,8 +14,6 @@ export class OpenAIProvider implements LLMProvider {
   readonly name: string;
   private client: OpenAI;
   private model: string;
-  private provider: ModelConfig["provider"];
-
   constructor(name: string, config: ModelConfig, apiKey: string) {
     this.name = name;
     this.client = new OpenAI({
@@ -23,7 +21,6 @@ export class OpenAIProvider implements LLMProvider {
       ...(config.base_url ? { baseURL: config.base_url } : {}),
     });
     this.model = config.model;
-    this.provider = config.provider;
   }
 
   async generate(prompt: ReviewPrompt, maxTokens: number): Promise<LLMResponse> {
@@ -40,19 +37,11 @@ export class OpenAIProvider implements LLMProvider {
     const maxContinuations = getMaxContinuations();
 
     for (let attempt = 0; attempt <= maxContinuations; attempt += 1) {
-      const request: ChatCompletionCreateParamsNonStreaming & {
-        prompt_cache_key?: string;
-        prompt_cache_retention?: "in_memory" | "24h";
-      } = {
+      const request: ChatCompletionCreateParamsNonStreaming = {
         model: this.model,
         max_tokens: maxTokens,
         messages,
       };
-
-      if (this.provider === "openai") {
-        request.prompt_cache_key = prompt.cache_key;
-        request.prompt_cache_retention = "in_memory";
-      }
 
       const response = await this.client.chat.completions.create(request);
 
@@ -60,7 +49,9 @@ export class OpenAIProvider implements LLMProvider {
       const content = choice?.message?.content ?? "";
       finishReason = choice?.finish_reason;
       tokensUsed += response.usage?.total_tokens ?? 0;
-      cachedTokens += response.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+      if (attempt === 0) {
+        cachedTokens = response.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+      }
 
       if (content) {
         parts.push(content);

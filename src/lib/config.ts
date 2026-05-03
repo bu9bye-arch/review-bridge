@@ -4,7 +4,6 @@ import { homedir } from "os";
 import type { Config } from "./types.js";
 
 const CONFIG_DIR = join(homedir(), ".review-bridge");
-const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 
 const DEFAULT_CONFIG: Config = {
   default_model: "claude-sonnet",
@@ -25,22 +24,25 @@ export function getConfigDir(): string {
   return process.env.REVIEW_BRIDGE_CONFIG || CONFIG_DIR;
 }
 
-export function getConfigPath(): string {
-  return join(getConfigDir(), "config.json");
-}
-
 export function loadConfig(): Config {
-  const configPath = getConfigPath();
+  const dir = getConfigDir();
+  const configPath = join(dir, "config.json");
+
   if (!existsSync(configPath)) {
-    const dir = getConfigDir();
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
     writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), "utf-8");
     return DEFAULT_CONFIG;
   }
-  const raw = readFileSync(configPath, "utf-8");
-  return JSON.parse(raw) as Config;
+
+  try {
+    const raw = readFileSync(configPath, "utf-8");
+    return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+  } catch (err) {
+    console.error(`[review-bridge] 配置文件解析失败，使用默认配置:`, err);
+    return DEFAULT_CONFIG;
+  }
 }
 
 export function resolveModelConfig(config: Config, modelOverride?: string) {

@@ -1,2 +1,9 @@
 node_modules/
 dist/
+.claude/
+.review-bridge/
+temp/
+review_*.json
+*.log
+.env
+.env.*

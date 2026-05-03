@@ -11,7 +11,7 @@ const cliInputSchema = z.object({
   user_prompt: z.string().optional(),
   source_tool: z.enum(["claude-code", "cline", "copilot", "other"]).optional(),
   review_focus: z.array(z.enum(["security", "performance", "style", "correctness"])).optional(),
-  diff_range: z.string().optional().describe("diff 范围，如 HEAD~1..HEAD 或留空获取工作区变更"),
+  diff_range: z.string().regex(/^([\w.~^:\/-]+(\.\.\.?[\w.~^:\/-]+)?)?$/, "无效的 diff 范围格式").optional().describe("diff 范围，如 HEAD~1..HEAD，传空字符串获取工作区变更，默认使用配置值"),
   model_override: z.string().optional().describe("临时覆盖审查模型"),
 });
 
@@ -21,7 +21,7 @@ async function main() {
 
   if (command === "package-review") {
     const stdinData = readFileSync(0, "utf-8");
-    const rawInput = JSON.parse(stdinData);
+    const rawInput = JSON.parse(stdinData.replace(/^\uFEFF/, ""));
     const input = cliInputSchema.parse(rawInput);
 
     const cwd = input.cwd || process.cwd();
