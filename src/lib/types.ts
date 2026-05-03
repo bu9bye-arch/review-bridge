@@ -44,9 +44,20 @@ export interface GitDiffResult {
 export interface LLMResponse {
   content: string;
   tokens_used: number;
+  finish_reason?: string;
+  continuation_count?: number;
+  cached_tokens?: number;
+  cache_creation_tokens?: number;
+}
+
+export interface ReviewPrompt {
+  cache_key: string;
+  instructions: string;
+  context: string;
+  text: string;
 }
 
 export interface LLMProvider {
   name: string;
-  generate(prompt: string, maxTokens: number): Promise<LLMResponse>;
+  generate(prompt: ReviewPrompt, maxTokens: number): Promise<LLMResponse>;
 }

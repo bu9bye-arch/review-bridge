@@ -6,6 +6,8 @@ import { formatReviewPrompt } from "../lib/review-prompt.js";
 import { createProvider } from "../lib/llm/provider.js";
 import type { ReviewFocus, SourceTool } from "../lib/types.js";
 
+const MIN_REVIEW_OUTPUT_TOKENS = 8000;
+
 const reviewChangesSchema = {
   cwd: z.string().describe("项目工作目录"),
   user_prompt: z.string().optional().describe("用户原始提示词"),
@@ -43,7 +45,7 @@ export function registerTools(server: McpServer): void {
 
       const gitData = await collectGitData(
         params.cwd,
-        params.diff_range || config.diff_default_range
+        params.diff_range
       );
 
       const prompt = formatReviewPrompt(
@@ -59,24 +61,48 @@ export function registerTools(server: McpServer): void {
         gitData
       );
 
-      const provider = createProvider(modelName, modelConfig, apiKey);
-      const result = await provider.generate(
-        prompt,
-        params.max_tokens || modelConfig.max_tokens
-      );
+      try {
+        const provider = createProvider(modelName, modelConfig, apiKey);
+        const requestedMaxTokens = params.max_tokens;
+        const effectiveMaxTokens = Math.max(
+          requestedMaxTokens || modelConfig.max_tokens,
+          MIN_REVIEW_OUTPUT_TOKENS
+        );
+        const result = await provider.generate(
+          prompt,
+          effectiveMaxTokens
+        );
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: result.content,
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: result.content,
+            },
+          ],
+          _meta: {
+            model_used: modelName,
+            tokens_used: result.tokens_used,
+            cached_tokens: result.cached_tokens,
+            cache_creation_tokens: result.cache_creation_tokens,
+            finish_reason: result.finish_reason,
+            continuation_count: result.continuation_count,
+            requested_max_tokens: requestedMaxTokens,
+            effective_max_tokens: effectiveMaxTokens,
           },
-        ],
-        _meta: {
-          model_used: modelName,
-          tokens_used: result.tokens_used,
-        },
-      };
+        };
+      } catch (err) {
+        console.error("[review-bridge] review_changes 失败:", err);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "代码审查请求失败，请检查模型配置或网络连接。",
+            },
+          ],
+          isError: true,
+        };
+      }
     }
   );
 
@@ -92,7 +118,7 @@ export function registerTools(server: McpServer): void {
         params.model_override
       );
 
-      const gitData = await collectGitData(cwd, config.diff_default_range);
+      const gitData = await collectGitData(cwd);
 
       const prompt = formatReviewPrompt(
         {
@@ -103,21 +129,43 @@ export function registerTools(server: McpServer): void {
         gitData
       );
 
-      const provider = createProvider(modelName, modelConfig, apiKey);
-      const result = await provider.generate(prompt, modelConfig.max_tokens);
+      try {
+        const provider = createProvider(modelName, modelConfig, apiKey);
+        const effectiveMaxTokens = Math.max(
+          modelConfig.max_tokens,
+          MIN_REVIEW_OUTPUT_TOKENS
+        );
+        const result = await provider.generate(prompt, effectiveMaxTokens);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: result.content,
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: result.content,
+            },
+          ],
+          _meta: {
+            model_used: modelName,
+            tokens_used: result.tokens_used,
+            cached_tokens: result.cached_tokens,
+            cache_creation_tokens: result.cache_creation_tokens,
+            finish_reason: result.finish_reason,
+            continuation_count: result.continuation_count,
+            effective_max_tokens: effectiveMaxTokens,
           },
-        ],
-        _meta: {
-          model_used: modelName,
-          tokens_used: result.tokens_used,
-        },
-      };
+        };
+      } catch (err) {
+        console.error("[review-bridge] review_last_change 失败:", err);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "代码审查请求失败，请检查模型配置或网络连接。",
+            },
+          ],
+          isError: true,
+        };
+      }
     }
   );
 

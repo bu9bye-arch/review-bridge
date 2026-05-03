@@ -176,6 +176,12 @@ Copy-Item .\SKILL.md "$skillDir\SKILL.md"
 }
 ```
 
+返回结果的 `_meta` 会包含模型名、token 使用量、截断续写次数，以及 provider 可用时的缓存观测字段：
+
+- `cached_tokens`：本次请求读取的缓存输入 token 数。
+- `cache_creation_tokens`：本次请求创建的缓存输入 token 数。
+- `finish_reason` / `continuation_count`：用于判断审查结果是否因为输出长度被续写或截断。
+
 ### `review_last_change`
 
 便捷工具，审查当前或指定工作目录的最近变更。
@@ -197,6 +203,17 @@ Copy-Item .\SKILL.md "$skillDir\SKILL.md"
 - Review Bridge 会将选定的 Git diff 和仓库上下文发送到配置的模型提供商。
 - 对于私有仓库，仅使用您信任的提供商和端点。
 - 将本地输出、日志和 `.env` 文件添加到 `.gitignore`。
+
+## 提示词缓存
+
+默认审查提示词按缓存友好方式组织：
+
+- 稳定的审查角色、严重级别、判断标准和输出格式放在请求最前面。
+- 动态内容，例如用户任务、项目路径、近期提交、变更文件列表和 `git diff` 放在后面。
+- 不再把当前时间写入提示词，避免每次请求破坏共享前缀。
+- OpenAI provider 会为官方 OpenAI 端点附带稳定的 `prompt_cache_key`，并记录 `cached_tokens`。
+- Anthropic provider 会对稳定 system block 设置 `cache_control`，并记录缓存读取和创建 token。
+- `openai-compatible` provider 不会发送 OpenAI 专属缓存参数，以避免兼容端点拒绝未知字段。
 
 ## 开发
 
@@ -223,3 +240,12 @@ npm test
 ## 备注
 
 纯 vibe coding 产物 from Codex.
+
+## 模型使用统计
+
+数据来源：提交历史中的 `Co-Authored-By`。
+
+| 模型名称 | 提交次数 | 占比 |
+|---|---:|---:|
+| Claude Opus 4.7 | 2 | 66.7% |
+| GPT-5 Codex | 1 | 33.3% |

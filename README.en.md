@@ -176,6 +176,12 @@ Common arguments:
 }
 ```
 
+The returned `_meta` includes the model name, token usage, continuation count, and cache observation fields when the provider exposes them:
+
+- `cached_tokens`: input tokens read from prompt cache.
+- `cache_creation_tokens`: input tokens used to create a cache entry.
+- `finish_reason` / `continuation_count`: useful for detecting length-based continuation or truncation.
+
 ### `review_last_change`
 
 Convenience tool that reviews recent changes for the current or provided working directory.
@@ -197,6 +203,17 @@ Lists configured review models without exposing API key values.
 - Review Bridge sends selected Git diff and repository context to the configured model provider.
 - For private repositories, use only providers and endpoints you trust.
 - Add local outputs, logs, and `.env` files to `.gitignore`.
+
+## Prompt Caching
+
+The default review prompt is structured for cache-friendly reuse:
+
+- Stable review role, severity policy, judgment criteria, and output format are placed at the beginning of the request.
+- Dynamic content, such as the user task, project path, recent commits, changed files, and `git diff`, is placed after the stable instructions.
+- The current timestamp is no longer included in the prompt, so repeated requests can share a stable prefix.
+- The OpenAI provider sends a stable `prompt_cache_key` for official OpenAI endpoints and records `cached_tokens`.
+- The Anthropic provider applies `cache_control` to the stable system block and records cache read / creation tokens.
+- The `openai-compatible` provider does not send OpenAI-specific cache parameters, so compatible endpoints do not receive unknown fields.
 
 ## Development
 
@@ -223,3 +240,12 @@ At the moment, this project may not include test files; in that case Vitest exit
 ## Note
 
 纯 vibe coding 产物 from Codex.
+
+## Model Usage Statistics
+
+Source: `Co-Authored-By` trailers in Git commit history.
+
+| Model | Commits | Share |
+|---|---:|---:|
+| Claude Opus 4.7 | 2 | 66.7% |
+| GPT-5 Codex | 1 | 33.3% |
